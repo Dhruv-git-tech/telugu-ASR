@@ -1,36 +1,38 @@
 import streamlit as st
 import whisper
-import tempfile
-import torchaudio
-import soundfile as sf
 import os
+from datetime import datetime
+import tempfile
 
-st.title("🌟 Telugu ASR Studio 🌟")
-st.caption("Simple and fast Telugu ASR using Whisper (tiny)")
+# Title
+st.set_page_config(page_title="Telugu ASR - Speech to Text", layout="centered")
+st.title("🗣️ Telugu Audio Transcriber")
+st.write("Upload an audio or video file in Telugu and get the transcribed text.")
 
-@st.cache_resource(show_spinner=True)
+# Load model (only once)
+@st.cache_resource
 def load_model():
-    return whisper.load_model("tiny")
+    return whisper.load_model("base")
 
 model = load_model()
 
-audio_file = st.file_uploader("🎤 Upload Audio File (WAV, MP3, OGG)", type=["wav", "mp3", "ogg"])
+# Upload audio/video
+uploaded_file = st.file_uploader("Upload Audio or Video File", type=["mp3", "wav", "m4a", "mp4", "mov", "mkv"])
+if uploaded_file is not None:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=uploaded_file.name) as temp:
+        temp.write(uploaded_file.read())
+        temp_path = temp.name
 
-if audio_file is not None:
-    st.audio(audio_file, format="audio/wav")
-    st.info("Transcribing...")
+    st.audio(uploaded_file, format='audio/wav')
+    st.info("Transcribing... Please wait.")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(audio_file.read())
-        tmp_path = tmp.name
+    result = model.transcribe(temp_path, language="te")
 
-    waveform, sr = torchaudio.load(tmp_path)
-    if sr != 16000:
-        waveform = torchaudio.functional.resample(waveform, sr, 16000)
-    sf.write(tmp_path, waveform.T.numpy(), 16000)
+    st.success("✅ Transcription Complete:")
+    st.text_area("Telugu Transcription", result["text"], height=200)
 
-    result = model.transcribe(tmp_path, language="te")
-    st.subheader("📄 Telugu Transcript")
-    st.text(result["text"])
+    # Download option
+    file_name = f"telugu_transcript_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    st.download_button("📄 Download Transcript", result["text"], file_name=file_name)
 
-    os.remove(tmp_path)
+    os.remove(temp_path)
