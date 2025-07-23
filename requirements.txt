@@ -1,0 +1,13 @@
+streamlit
+streamlit-webrtc
+openai-whisper
+torchaudio
+soundfile
+deep-translator
+srt
+av
+numpy
+matplotlib
+librosa
+moviepy
+streamlit-player
